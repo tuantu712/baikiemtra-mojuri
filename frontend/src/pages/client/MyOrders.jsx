@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuthStore } from '../../context/authStore';
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = 'https://baikiemtra-mojuri-lfov.vercel.app/api';
 
 const STATUS_LABELS = {
   PENDING:    { label: 'Chờ xử lý',     color: '#f39c12' },
