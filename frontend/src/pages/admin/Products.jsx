@@ -11,6 +11,11 @@ export default function Products() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   
+  // Filters state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [stockFilter, setStockFilter] = useState('All');
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -158,79 +163,142 @@ export default function Products() {
     }
   };
 
+  // Calculate quick stats from products list
+  const totalProducts = products ? products.length : 0;
+  const outOfStock = products ? products.filter(p => p.stock === 0).length : 0;
+  const lowStock = products ? products.filter(p => p.stock > 0 && p.stock < 10).length : 0;
+  const avgPrice = products && products.length > 0
+    ? (products.reduce((acc, p) => acc + p.price, 0) / products.length).toFixed(1)
+    : '0.0';
+
+  // Apply filters
+  const filteredProducts = products ? products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = categoryFilter === 'All' || product.category.toLowerCase() === categoryFilter.toLowerCase();
+    
+    let matchesStock = true;
+    if (stockFilter === 'InStock') {
+      matchesStock = product.stock > 0;
+    } else if (stockFilter === 'LowStock') {
+      matchesStock = product.stock > 0 && product.stock < 10;
+    } else if (stockFilter === 'OutOfStock') {
+      matchesStock = product.stock === 0;
+    }
+    
+    return matchesSearch && matchesCategory && matchesStock;
+  }) : [];
+
   return (
-    <div>
+    <div className="container-fluid px-0">
+      
+      {/* Upper header section */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 'bold', margin: 0 }}>Quản lý sản phẩm</h2>
-        <button onClick={handleOpenCreateForm} className="btn btn-dark" style={{ background: '#111' }}>
-          <i className="fa fa-plus mr-1"></i> Thêm sản phẩm
+        <div>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 'bold', margin: 0, fontSize: '28px', color: '#111' }}>
+            Quản lý sản phẩm
+          </h2>
+          <p className="text-muted mb-0" style={{ fontSize: '13px' }}>Xem danh sách, thêm, sửa đổi hoặc xóa thông tin sản phẩm trang sức Mojuri.</p>
+        </div>
+        <button onClick={handleOpenCreateForm} className="btn btn-dark px-4 py-2" style={{ background: '#111', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}>
+          <i className="fa fa-plus mr-2"></i> Thêm sản phẩm
         </button>
       </div>
 
-      {/* Form Card Overlay */}
-      {isFormOpen && (
-        <div className="card p-4 mb-4 shadow-sm border-0 bg-white">
-          <h4 style={{ fontSize: '15px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '20px' }}>
-            {editingProduct ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm mới'}
-          </h4>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="row mb-3">
-              <div className="col-md-6 mb-3 mb-md-0">
-                <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Tên sản phẩm</label>
-                <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="form-control form-control-sm" required />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Danh mục</label>
-                <select name="category" value={formData.category} onChange={handleInputChange} className="form-select form-select-sm form-control form-control-sm">
-                  <option value="Rings">Rings</option>
-                  <option value="Necklaces">Necklaces</option>
-                  <option value="Earrings">Earrings</option>
-                  <option value="Bracelets">Bracelets</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="row mb-3">
-              <div className="col-md-4 mb-3 mb-md-0">
-                <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Giá bán ($)</label>
-                <input type="number" step="0.01" name="price" value={formData.price} onChange={handleInputChange} className="form-control form-control-sm" required />
-              </div>
-              <div className="col-md-4 mb-3 mb-md-0">
-                <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Giá khuyến mãi ($)</label>
-                <input type="number" step="0.01" name="salePrice" value={formData.salePrice} onChange={handleInputChange} className="form-control form-control-sm" />
-              </div>
-              <div className="col-md-4">
-                <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Số lượng tồn kho</label>
-                <input type="number" name="stock" value={formData.stock} onChange={handleInputChange} className="form-control form-control-sm" required />
-              </div>
-            </div>
-
-            <div className="row mb-3">
-              <div className="col-md-6 mb-3 mb-md-0">
-                <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Ảnh đại diện (Thumbnail path)</label>
-                <input type="text" name="thumbnail" value={formData.thumbnail} onChange={handleInputChange} className="form-control form-control-sm" required />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Bộ sưu tập ảnh (JSON gallery paths)</label>
-                <input type="text" name="images" value={formData.images} onChange={handleInputChange} className="form-control form-control-sm" required />
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Mô tả sản phẩm</label>
-              <textarea name="description" value={formData.description} onChange={handleInputChange} className="form-control form-control-sm" rows="3" required></textarea>
-            </div>
-
-            <div className="d-flex gap-2">
-              <button type="submit" className="btn btn-dark btn-sm" style={{ background: '#111' }}>Lưu lại</button>
-              <button type="button" onClick={closeForm} className="btn btn-outline-secondary btn-sm">Hủy bỏ</button>
-            </div>
-          </form>
+      {/* Metrics Stats section */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+        <div className="card metric-card-custom p-3 border-0 shadow-sm" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', margin: 0 }}>
+          <div className="metric-card-icon icon-primary-light" style={{ flexShrink: 0 }}>
+            <i className="fa fa-diamond"></i>
+          </div>
+          <div className="stat-item-info">
+            <span className="text-muted text-uppercase" style={{ fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Tổng sản phẩm</span>
+            <span className="h3 mb-0 font-weight-bold" style={{ color: '#111', fontWeight: 800 }}>{totalProducts}</span>
+          </div>
         </div>
-      )}
 
-      {/* Listing Products Table */}
+        <div className="card metric-card-custom p-3 border-0 shadow-sm" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', margin: 0 }}>
+          <div className="metric-card-icon icon-info-light" style={{ flexShrink: 0 }}>
+            <i className="fa fa-usd"></i>
+          </div>
+          <div className="stat-item-info">
+            <span className="text-muted text-uppercase" style={{ fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Giá trung bình</span>
+            <span className="h3 mb-0 font-weight-bold" style={{ color: '#111', fontWeight: 800 }}>${avgPrice}</span>
+          </div>
+        </div>
+
+        <div className="card metric-card-custom p-3 border-0 shadow-sm" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', margin: 0 }}>
+          <div className="metric-card-icon icon-danger-light" style={{ flexShrink: 0 }}>
+            <i className="fa fa-exclamation-triangle"></i>
+          </div>
+          <div className="stat-item-info">
+            <span className="text-muted text-uppercase" style={{ fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Đã hết hàng</span>
+            <span className="h3 mb-0 font-weight-bold" style={{ color: outOfStock > 0 ? '#dc3545' : '#111', fontWeight: 800 }}>{outOfStock}</span>
+          </div>
+        </div>
+
+        <div className="card metric-card-custom p-3 border-0 shadow-sm" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', margin: 0 }}>
+          <div className="metric-card-icon icon-warning-light" style={{ flexShrink: 0 }}>
+            <i className="fa fa-bell-o"></i>
+          </div>
+          <div className="stat-item-info">
+            <span className="text-muted text-uppercase" style={{ fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Sắp hết hàng (&lt;10)</span>
+            <span className="h3 mb-0 font-weight-bold" style={{ color: lowStock > 0 ? '#ffc107' : '#111', fontWeight: 800 }}>{lowStock}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar Section */}
+      <div className="card border-0 shadow-sm p-3 mb-4 bg-white" style={{ borderRadius: '12px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+          
+          {/* Search bar */}
+          <div className="search-wrapper" style={{ flex: '1 1 300px', maxWidth: '400px' }}>
+            <i className="fa fa-search"></i>
+            <input 
+              type="text" 
+              placeholder="Tìm tên hoặc mô tả sản phẩm..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+              className="input-custom py-2" 
+              style={{ paddingLeft: '38px', fontSize: '13px' }} 
+            />
+          </div>
+
+          {/* Stock selector filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+            <span className="text-nowrap mb-0 text-muted" style={{ fontSize: '12px', fontWeight: 600 }}>Tồn kho:</span>
+            <select 
+              value={stockFilter} 
+              onChange={(e) => setStockFilter(e.target.value)} 
+              className="input-custom py-2" 
+              style={{ fontSize: '13px', width: '150px' }}
+            >
+              <option value="All">Tất cả kho</option>
+              <option value="InStock">Còn hàng</option>
+              <option value="LowStock">Sắp hết hàng</option>
+              <option value="OutOfStock">Hết hàng</option>
+            </select>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Category filter tabs */}
+      <div className="filter-tabs">
+        {['All', 'Rings', 'Necklaces', 'Earrings', 'Bracelets'].map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setCategoryFilter(cat)}
+            className={`filter-tab-btn ${categoryFilter === cat ? 'active' : ''}`}
+          >
+            {cat === 'All' ? 'Tất cả danh mục' : cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Listing Products Modern Table */}
       {isLoading ? (
         <div className="text-center py-5">
           <div className="spinner-border text-dark" role="status">
@@ -238,51 +306,292 @@ export default function Products() {
           </div>
         </div>
       ) : (
-        <div className="card border-0 shadow-sm p-3 bg-white">
+        <div className="admin-card-table">
           <div className="table-responsive">
-            <table className="table align-middle" style={{ margin: 0 }}>
+            <table className="table table-modern align-middle" style={{ margin: 0 }}>
               <thead>
                 <tr>
-                  <th>Hình ảnh</th>
-                  <th>Tên</th>
+                  <th style={{ width: '80px' }}>Hình ảnh</th>
+                  <th>Tên sản phẩm</th>
                   <th>Danh mục</th>
                   <th>Giá gốc</th>
                   <th>Khuyến mãi</th>
-                  <th>Tồn kho</th>
-                  <th className="text-center">Thao tác</th>
+                  <th>Trạng thái kho</th>
+                  <th className="text-center" style={{ width: '150px' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {products && products.map((product) => {
-                  const imageSrc = product.thumbnail.startsWith('http') ? product.thumbnail : `/${product.thumbnail}`;
-                  return (
-                    <tr key={product.id}>
-                      <td>
-                        <img src={imageSrc} alt="" style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }} onError={(e) => e.target.src = "https://html-demo-orcin.vercel.app/premium/mojuri/media/product/3.jpg"} />
-                      </td>
-                      <td className="font-weight-bold" style={{ color: '#111' }}>{product.name}</td>
-                      <td><span className="badge bg-light text-dark" style={{ border: '1px solid #ddd' }}>{product.category}</span></td>
-                      <td>${product.price}</td>
-                      <td style={{ color: '#e0a96d', fontWeight: 'bold' }}>{product.salePrice ? `$${product.salePrice}` : '-'}</td>
-                      <td>
-                        {product.stock > 0 ? (
-                          <span className="text-success">{product.stock} cái</span>
-                        ) : (
-                          <span className="text-danger font-weight-bold">Hết hàng</span>
-                        )}
-                      </td>
-                      <td className="text-center">
-                        <button onClick={() => handleEditClick(product)} className="btn btn-outline-dark btn-sm mr-2">Sửa</button>
-                        <button onClick={() => handleDeleteClick(product.id)} className="btn btn-outline-danger btn-sm">Xóa</button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {filteredProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="text-center py-5 text-muted">
+                      <i className="fa fa-cubes d-block mb-2" style={{ fontSize: '24px' }}></i>
+                      Không tìm thấy sản phẩm nào phù hợp với bộ lọc.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredProducts.map((product) => {
+                    const imageSrc = product.thumbnail.startsWith('http') ? product.thumbnail : `/${product.thumbnail}`;
+                    const isOutOfStock = product.stock === 0;
+                    const isLowStock = product.stock > 0 && product.stock < 10;
+
+                    return (
+                      <tr key={product.id}>
+                        <td>
+                          <div style={{ width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
+                            <img 
+                              src={imageSrc} 
+                              alt={product.name} 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.2s' }} 
+                              className="product-table-img"
+                              onError={(e) => e.target.src = "https://html-demo-orcin.vercel.app/premium/mojuri/media/product/3.jpg"} 
+                            />
+                          </div>
+                        </td>
+                        <td>
+                          <div>
+                            <span className="font-weight-bold" style={{ color: '#1a202c', fontSize: '14px', display: 'block' }}>{product.name}</span>
+                            <small className="text-muted text-truncate d-inline-block" style={{ maxWidth: '300px', fontSize: '11px' }}>
+                              {product.description}
+                            </small>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="badge bg-light text-dark px-2.5 py-1.5" style={{ border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', fontWeight: 600 }}>
+                            {product.category}
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{ textDecoration: product.salePrice ? 'line-through' : 'none', color: product.salePrice ? '#a0aec0' : '#1a202c' }}>
+                            ${product.price}
+                          </span>
+                        </td>
+                        <td>
+                          {product.salePrice ? (
+                            <span style={{ color: '#e0a96d', fontWeight: 'bold' }}>
+                              ${product.salePrice}
+                            </span>
+                          ) : (
+                            <span className="text-muted">-</span>
+                          )}
+                        </td>
+                        <td>
+                          {isOutOfStock ? (
+                            <span className="badge-custom badge-cancelled">
+                              <span className="badge-dot"></span>
+                              Hết hàng
+                            </span>
+                          ) : isLowStock ? (
+                            <span className="badge-custom badge-pending">
+                              <span className="badge-dot"></span>
+                              Chỉ còn {product.stock} cái
+                            </span>
+                          ) : (
+                            <span className="badge-custom badge-delivered">
+                              <span className="badge-dot"></span>
+                              {product.stock} cái (Còn hàng)
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-center">
+                          <div className="d-flex justify-content-center gap-2">
+                            <button 
+                              onClick={() => handleEditClick(product)} 
+                              className="btn btn-sm btn-outline-dark d-flex align-items-center justify-content-center"
+                              style={{ width: '32px', height: '32px', borderRadius: '6px', padding: 0 }}
+                              title="Sửa thông tin sản phẩm"
+                            >
+                              <i className="fa fa-pencil"></i>
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteClick(product.id)} 
+                              className="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center"
+                              style={{ width: '32px', height: '32px', borderRadius: '6px', padding: 0 }}
+                              title="Xóa sản phẩm"
+                            >
+                              <i className="fa fa-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
         </div>
       )}
+
+      {/* Slide-over Drawer for Add/Edit Product */}
+      <div className={`drawer-backdrop ${isFormOpen ? 'open' : ''}`} onClick={closeForm}>
+        <div className="drawer-content" onClick={(e) => e.stopPropagation()}>
+          <div className="drawer-header">
+            <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 'bold', margin: 0, fontSize: '20px' }}>
+              {editingProduct ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm mới'}
+            </h3>
+            <button onClick={closeForm} className="border-0 bg-transparent text-muted" style={{ fontSize: '24px', cursor: 'pointer', outline: 'none' }}>
+              &times;
+            </button>
+          </div>
+          <form onSubmit={handleSubmit} className="h-100 d-flex flex-column" style={{ overflow: 'hidden' }}>
+            <div className="drawer-body">
+              
+              {/* Image Preview Area */}
+              <div className="mb-4 text-center">
+                <span className="form-label-custom d-block mb-2">Ảnh xem trước (Thumbnail)</span>
+                <div className="mx-auto d-flex align-items-center justify-content-center" style={{ width: '120px', height: '120px', borderRadius: '10px', border: '1.5px dashed #cbd5e0', overflow: 'hidden', backgroundColor: '#f8fafc' }}>
+                  <img 
+                    src={formData.thumbnail.startsWith('http') ? formData.thumbnail : `/${formData.thumbnail}`} 
+                    alt="Product preview" 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => { e.target.src = "https://html-demo-orcin.vercel.app/premium/mojuri/media/product/3.jpg"; }} 
+                  />
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label-custom">Tên sản phẩm</label>
+                <input 
+                  type="text" 
+                  name="name" 
+                  value={formData.name} 
+                  onChange={handleInputChange} 
+                  className="input-custom" 
+                  placeholder="Nhập tên sản phẩm trang sức..."
+                  required 
+                />
+              </div>
+
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <label className="form-label-custom">Danh mục</label>
+                  <select 
+                    name="category" 
+                    value={formData.category} 
+                    onChange={handleInputChange} 
+                    className="input-custom"
+                  >
+                    <option value="Rings">Rings (Nhẫn)</option>
+                    <option value="Necklaces">Necklaces (Dây chuyền)</option>
+                    <option value="Earrings">Earrings (Bông tai)</option>
+                    <option value="Bracelets">Bracelets (Vòng tay)</option>
+                  </select>
+                </div>
+                <div className="col-md-6 mb-3">
+                  <label className="form-label-custom">Số lượng tồn kho</label>
+                  <input 
+                    type="number" 
+                    name="stock" 
+                    value={formData.stock} 
+                    onChange={handleInputChange} 
+                    className="input-custom" 
+                    placeholder="VD: 50"
+                    required 
+                  />
+                </div>
+              </div>
+
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <label className="form-label-custom">Giá gốc ($)</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    name="price" 
+                    value={formData.price} 
+                    onChange={handleInputChange} 
+                    className="input-custom" 
+                    placeholder="VD: 150.00"
+                    required 
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <label className="form-label-custom">Giá khuyến mãi ($)</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    name="salePrice" 
+                    value={formData.salePrice} 
+                    onChange={handleInputChange} 
+                    className="input-custom" 
+                    placeholder="Không có giảm giá thì để trống"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label-custom">Đường dẫn ảnh đại diện (Thumbnail path)</label>
+                <input 
+                  type="text" 
+                  name="thumbnail" 
+                  value={formData.thumbnail} 
+                  onChange={handleInputChange} 
+                  className="input-custom" 
+                  placeholder="VD: media/product/1.jpg"
+                  required 
+                />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label-custom">Bộ sưu tập ảnh (JSON gallery paths)</label>
+                <input 
+                  type="text" 
+                  name="images" 
+                  value={formData.images} 
+                  onChange={handleInputChange} 
+                  className="input-custom" 
+                  placeholder='VD: ["media/product/1.jpg"]'
+                  required 
+                />
+                
+                {/* Visual gallery image previews */}
+                <div className="img-preview-container">
+                  {(() => {
+                    try {
+                      const gallery = JSON.parse(formData.images);
+                      if (Array.isArray(gallery)) {
+                        return gallery.map((img, i) => (
+                          <div key={i} className="img-preview-box">
+                            <img 
+                              src={img.startsWith('http') ? img : `/${img}`} 
+                              alt="Gallery Preview" 
+                              onError={(e) => { e.target.src = "https://html-demo-orcin.vercel.app/premium/mojuri/media/product/3.jpg"; }} 
+                            />
+                          </div>
+                        ));
+                      }
+                    } catch (err) {}
+                    return null;
+                  })()}
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label-custom">Mô tả sản phẩm</label>
+                <textarea 
+                  name="description" 
+                  value={formData.description} 
+                  onChange={handleInputChange} 
+                  className="input-custom" 
+                  rows="4" 
+                  placeholder="Mô tả sản phẩm, chất liệu, kích thước..."
+                  required
+                ></textarea>
+              </div>
+
+            </div>
+            <div className="drawer-footer">
+              <button type="submit" className="btn btn-dark px-4 py-2" style={{ background: '#111', fontSize: '13px', fontWeight: 'bold', borderRadius: '6px' }}>
+                <i className="fa fa-save mr-2"></i> Lưu sản phẩm
+              </button>
+              <button type="button" onClick={closeForm} className="btn btn-outline-secondary px-4 py-2" style={{ fontSize: '13px', borderRadius: '6px' }}>
+                Hủy bỏ
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
     </div>
   );
 }
